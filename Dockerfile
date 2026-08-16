@@ -32,10 +32,13 @@ ENV DATABASE_PATH=/data/family-organiser.db
 # binding included; static assets are not part of it and are copied separately.
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
+COPY docker-entrypoint.mjs ./
 
-RUN mkdir -p /data && chown -R node:node /data /app
-USER node
+RUN chown -R node:node /app
+
+# Deliberately starts as root: a mounted volume arrives root-owned, so the
+# entrypoint has to fix /data's ownership before dropping to the `node` user.
 VOLUME ["/data"]
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "docker-entrypoint.mjs"]

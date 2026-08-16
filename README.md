@@ -48,30 +48,121 @@ npm start
 
 ## Putting it online for the family
 
-The calendar lives in a single SQLite file, so hosting it needs somewhere with a
-**persistent disk**. Any small VPS, or Fly.io / Railway / Render, is plenty — this
-is a handful of rows, not a workload. Platforms with no persistent disk (Vercel,
-Netlify, and similar) will lose the data on every deploy, so they aren't suitable
-as-is.
+The calendar is a single SQLite file, so it needs to run somewhere with a
+**persistent disk** — a disk that survives restarts and re-deploys. That rules
+out Vercel and Netlify, which throw away everything written to disk each time
+you deploy. It does not need anything big: this is a few thousand rows, and the
+smallest instance any host sells is more than enough.
 
-A `Dockerfile` is included:
+Whichever you pick, two rules matter:
+
+1. **Run exactly one instance.** SQLite has a single writer. Two instances means
+   two half-calendars, or a corrupted one.
+2. **Serve it over HTTPS.** Session cookies are marked `secure` in production and
+   simply won't be stored over plain `http://`. All the options below give you
+   HTTPS automatically.
+
+### Option A — Fly.io (about £3/month, the cheapest)
+
+Volumes are a first-class thing on Fly, and `fly.toml` in this repo is already
+set up: one machine, a 1 GB volume mounted at `/data`, London region, HTTPS
+forced.
+
+1. Install the CLI and sign in (a card is required, but the usage here is pennies):
+
+   ```bash
+   curl -L https://fly.io/install.sh | sh
+   fly auth signup      # or: fly auth login
+   ```
+
+2. Pick a name. App names are unique across the whole of Fly, so edit the first
+   line of `fly.toml` to something like `tucknott-family-calendar`.
+
+3. From the project folder:
+
+   ```bash
+   fly launch --no-deploy --copy-config
+   fly volumes create family_data --size 1 --region lhr
+   fly deploy
+   ```
+
+4. `fly open` opens the app. First visit walks you through setup.
+
+To update it later: `git pull && fly deploy`. To check on it: `fly logs`,
+`fly status`.
+
+If you would rather it slept when nobody's using it (a few pence a month instead
+of a few pounds, at the cost of a couple of seconds on the first load of the
+day), set this in `fly.toml` and re-deploy:
+
+```toml
+auto_stop_machines = "suspend"
+min_machines_running = 0
+```
+
+### Option B — Railway (no terminal needed)
+
+Everything is done in the browser, which is the easiest route if you'd rather not
+touch a command line. Around $5/month.
+
+1. Sign in to [railway.app](https://railway.app) with GitHub.
+2. **New Project → Deploy from GitHub repo**, and choose this repository and the
+   branch you want. Railway finds the `Dockerfile` on its own.
+3. Open the service → **Settings → Volumes → Add volume**, mount path `/data`.
+   This is the step that matters; skip it and the calendar resets on every deploy.
+4. **Settings → Networking → Generate Domain** to get an HTTPS address.
+5. Redeploy, then open the address and set up your family.
+
+Leave the replica count at 1 (Settings → Deploy). Railway supplies `PORT` itself,
+and the `Dockerfile` already points `DATABASE_PATH` at `/data`.
+
+### Option C — Any server you already have, with Docker
+
+Works on a £4/month VPS (Hetzner, DigitalOcean, Linode) or a machine at home.
 
 ```bash
 docker build -t family-organiser .
-docker run -d -p 3000:3000 -v family-data:/data --name family family-organiser
+docker run -d --name family \
+  -p 3000:3000 \
+  -v family-data:/data \
+  --restart unless-stopped \
+  family-organiser
 ```
 
-The volume at `/data` is where the calendar is kept, so it survives updates.
+The named volume `family-data` holds the calendar and survives
+`docker rm` / rebuilds. Put a reverse proxy with a TLS certificate in front —
+[Caddy](https://caddyserver.com) does this in two lines and gets certificates
+automatically:
 
-> Note: the Docker image itself has not been built and run — there was no Docker
-> daemon available in the environment this was written in. What *has* been tested
-> is the exact build the image runs: the standalone Next.js server, its bundled
-> native SQLite binding, static asset serving, and writing the database to an
-> absolute `DATABASE_PATH` like `/data`. The full browser test suite passes
-> against that build.
+```
+calendar.example.com {
+    reverse_proxy localhost:3000
+}
+```
 
-Whatever you host it on, **put it behind HTTPS**. Session cookies are marked
-`secure` in production and won't be stored over plain HTTP.
+> **On a home machine**, note it needs to stay switched on for the family to
+> reach the calendar, and you'd need to expose it to the internet somehow
+> (a tunnel such as Cloudflare Tunnel or Tailscale is safer than opening a port
+> on your router). A hosted option is genuinely less hassle.
+
+### What's been tested, and what hasn't
+
+Honest accounting, because deployment is where confident-sounding instructions
+usually come unstuck:
+
+- **Tested.** The exact server the container runs: the standalone Next.js build,
+  its bundled native SQLite binding, static assets, and the database being
+  written to an absolute path like `/data`. The full browser suite passes against
+  that build. The container entrypoint was also tested on the case that actually
+  breaks — starting as root against a **root-owned, freshly-mounted** `/data`,
+  taking ownership of it, dropping to the unprivileged `node` user, and then
+  serving requests and writing the database as that user.
+- **Not tested.** `docker build` itself, `fly deploy`, and the Railway flow —
+  there was no Docker daemon or hosting account available where this was written.
+  The `Dockerfile` and `fly.toml` are conventional and `fly.toml` is at least
+  verified to parse and to be internally consistent, but the first real deploy
+  may still want a nudge. If it does, `fly logs` or Railway's deploy log will
+  say why — send it over.
 
 ### Settings
 
