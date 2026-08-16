@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 /**
@@ -79,6 +79,9 @@ const MIGRATIONS: { name: string; sql: string }[] = [
         all_day         INTEGER,
         start_time      TEXT,
         end_time        TEXT,
+        -- JSON array of member ids, or NULL to inherit the series' members.
+        -- Covers "Mum takes them to swimming just this week".
+        member_ids      TEXT,
         PRIMARY KEY (event_id, occurrence_date)
       );
 
@@ -120,8 +123,22 @@ function runMigrations(db: DB): void {
   }
 }
 
+/**
+ * Where the family's data lives. Relative paths are resolved against the
+ * working directory, so `DATABASE_PATH=/data/family.db` works for a mounted
+ * volume while the default keeps everything inside the project.
+ */
+function databasePath(): string {
+  const configured = process.env.DATABASE_PATH ?? "data/family-organiser.db";
+  // The database is opened when the server runs, not when it is built, so the
+  // bundler must not try to trace this path into the deployment output.
+  return isAbsolute(configured)
+    ? configured
+    : join(/* turbopackIgnore: true */ process.cwd(), configured);
+}
+
 function connect(): DB {
-  const path = resolve(process.env.DATABASE_PATH ?? "data/family-organiser.db");
+  const path = databasePath();
   mkdirSync(dirname(path), { recursive: true });
 
   const db = new Database(path);

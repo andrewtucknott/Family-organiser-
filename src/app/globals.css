@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/*
+ * Theme tokens. Every colour is declared once here as a raw value, then exposed
+ * to Tailwind through @theme so utilities like `bg-surface` work. Dark mode
+ * simply redefines the raw values, so no utility needs a `dark:` twin.
+ */
+:root {
+  --canvas: #f7f6f3;
+  --surface: #ffffff;
+  --surface-sunken: #f2f1ed;
+  --surface-hover: #f7f6f3;
+  --line: #e4e2dc;
+  --line-strong: #d3d0c8;
+  --ink: #1c1b19;
+  --ink-muted: #6b6862;
+  --ink-faint: #9a968e;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-ink: #ffffff;
+  --accent-soft: #eef2ff;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --today: #fffbeb;
+  --shadow-card: 0 1px 2px rgb(28 27 25 / 0.06), 0 1px 3px rgb(28 27 25 / 0.04);
+  --shadow-pop: 0 10px 15px -3px rgb(28 27 25 / 0.1), 0 4px 6px -4px rgb(28 27 25 / 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #15171b;
+    --surface: #1c1f25;
+    --surface-sunken: #22262e;
+    --surface-hover: #262a33;
+    --line: #2f343d;
+    --line-strong: #3d434e;
+    --ink: #e9eaec;
+    --ink-muted: #9aa0ab;
+    --ink-faint: #6f7681;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --accent-ink: #14161a;
+    --accent-soft: #262a3d;
+    --danger: #f87171;
+    --danger-soft: #2a1d1d;
+    --today: #262218;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.2);
+    --shadow-pop: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--surface-sunken);
+  --color-hover: var(--surface-hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-today: var(--today);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard focus stays visible everywhere; pointer focus does not shout. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/*
+ * A member's colour arrives as an inline `--member` custom property, so the
+ * tint, border and dot all derive from that one value.
+ */
+.member-chip {
+  background: color-mix(in srgb, var(--member) 13%, var(--surface));
+  border-left: 3px solid var(--member);
+  color: var(--ink);
+}
+
+.member-dot {
+  background: var(--member);
+}
+
+.member-ring {
+  box-shadow: inset 0 0 0 2px var(--member);
+}
+
+@media (prefers-color-scheme: dark) {
+  .member-chip {
+    background: color-mix(in srgb, var(--member) 22%, var(--surface));
+  }
+}
+
+/* Native date/time pickers are unreadable in dark mode without this. */
+@media (prefers-color-scheme: dark) {
+  input[type="date"],
+  input[type="time"] {
+    color-scheme: dark;
+  }
+}
+
+dialog::backdrop {
+  background: rgb(15 15 18 / 0.45);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

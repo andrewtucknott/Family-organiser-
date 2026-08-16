@@ -3,6 +3,9 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { cookies, headers } from "next/headers";
 import { type DB, getDb, getSetting, nowIso, setSetting } from "./db";
 
+// Re-exported so server callers have a single import for everything auth.
+export { MAX_PIN_LENGTH, MIN_PIN_LENGTH, validatePin } from "./pin";
+
 /**
  * Household PIN authentication.
  *
@@ -18,8 +21,6 @@ const SESSION_COOKIE = "family_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 365; // a year — family phones shouldn't nag
 const SCRYPT_KEYLEN = 64;
 
-export const MIN_PIN_LENGTH = 4;
-export const MAX_PIN_LENGTH = 12;
 
 /** Failed attempts allowed from one client before it is locked out. */
 const MAX_FAILED_ATTEMPTS = 8;
@@ -50,18 +51,6 @@ export function verifyPin(pin: string, hash: string, salt: string): boolean {
   const expected = Buffer.from(hash, "hex");
   if (expected.length !== candidate.length) return false;
   return timingSafeEqual(candidate, expected);
-}
-
-/** A PIN must be digits only — the login pad only produces digits. */
-export function validatePin(pin: string): string | null {
-  if (!/^\d+$/.test(pin)) return "Your PIN must be numbers only.";
-  if (pin.length < MIN_PIN_LENGTH) {
-    return `Your PIN must be at least ${MIN_PIN_LENGTH} digits.`;
-  }
-  if (pin.length > MAX_PIN_LENGTH) {
-    return `Your PIN can be at most ${MAX_PIN_LENGTH} digits.`;
-  }
-  return null;
 }
 
 // ---------------------------------------------------------------------------
