@@ -25,11 +25,21 @@ primary_region = "lhr"          # London — closest region to the UK
 [http_service]
   internal_port = 3000
   force_https = true            # session cookies are `secure` in production
-  # One machine, always. SQLite has a single writer, and a second machine would
-  # get its own separate volume — two families' worth of half a calendar each.
-  auto_stop_machines = "off"
+  # A family calendar is idle almost all of the time, and you are billed for
+  # the time a machine is awake — so it sleeps when nobody is looking at it.
+  # "suspend" freezes memory rather than shutting down, so waking is quick.
+  # Set auto_stop_machines = "off" and min_machines_running = 1 if you would
+  # rather pay a few pounds a month to never wait at all.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
+
+  # One machine, always. SQLite has a single writer, and a second machine would
+  # get its own separate volume — two half-calendars instead of one shared one.
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
 
 [[vm]]
   size = "shared-cpu-1x"

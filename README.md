@@ -50,8 +50,8 @@ npm start
 
 The calendar is a single SQLite file, so it needs to run somewhere with a
 **persistent disk** — a disk that survives restarts and re-deploys. That rules
-out Vercel and Netlify, which throw away everything written to disk each time
-you deploy. It does not need anything big: this is a few thousand rows, and the
+out Vercel and Netlify, which throw away everything written to disk on each
+deploy. It does not need anything big: this is a few thousand rows, and the
 smallest instance any host sells is more than enough.
 
 Whichever you pick, two rules matter:
@@ -59,16 +59,80 @@ Whichever you pick, two rules matter:
 1. **Run exactly one instance.** SQLite has a single writer. Two instances means
    two half-calendars, or a corrupted one.
 2. **Serve it over HTTPS.** Session cookies are marked `secure` in production and
-   simply won't be stored over plain `http://`. All the options below give you
-   HTTPS automatically.
+   simply won't be stored over plain `http://`. Every option below gives you
+   HTTPS.
 
-### Option A — Fly.io (about £3/month, the cheapest)
+### What it costs to run
+
+Roughly, per year, at the time of writing:
+
+| Where | Cost | Notes |
+| ----- | ---- | ----- |
+| A machine you already have | £0 | Plus ~£10/year for a domain, if you want one |
+| Fly.io, sleeping when idle | a few £ | What `fly.toml` is set to |
+| Fly.io, always awake | ~£30 | Never any wait on first load |
+| Railway / Render | ~£50+ | Browser-only setup, no terminal |
+
+Check the current rates before committing — hosting prices move, and this table
+will not.
+
+### Option A — A machine you already have (free)
+
+The cheapest by a distance, because the running cost is the electricity. An old
+laptop, a Raspberry Pi, a NAS, or a server you already pay for will all run this
+comfortably.
+
+```bash
+docker build -t family-organiser .
+docker run -d --name family \
+  -p 3000:3000 \
+  -v family-data:/data \
+  --restart unless-stopped \
+  family-organiser
+```
+
+The named volume `family-data` holds the calendar and survives `docker rm` and
+rebuilds.
+
+**To reach it from outside the house**, don't open a port on your router. Use a
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/):
+a small `cloudflared` daemon makes an *outbound* connection to Cloudflare, so
+there's no inbound firewall rule and your home IP is never exposed. It's free for
+personal use, and Cloudflare terminates TLS, so you get a valid HTTPS certificate
+without running Let's Encrypt yourself. You need a domain pointed at Cloudflare
+(about £10/year), after which the calendar lives at something like
+`calendar.yourname.co.uk`.
+
+If you'd rather not involve Cloudflare, [Tailscale](https://tailscale.com) is the
+other good answer: the calendar becomes reachable only from devices you've added
+to your own private network.
+
+Already have a server with a public address? [Caddy](https://caddyserver.com)
+gets you HTTPS in two lines:
+
+```
+calendar.example.com {
+    reverse_proxy localhost:3000
+}
+```
+
+> The trade-off here isn't money, it's that the machine has to stay switched on
+> for the family to reach the calendar.
+
+### Option B — Fly.io (a few pounds a year)
 
 Volumes are a first-class thing on Fly, and `fly.toml` in this repo is already
 set up: one machine, a 1 GB volume mounted at `/data`, London region, HTTPS
-forced.
+forced, and the machine **sleeps when nobody is using it**. You're billed for the
+time it's awake, and a family calendar is idle almost all day, so that's the
+difference between a few pounds a year and a few pounds a month.
 
-1. Install the CLI and sign in (a card is required, but the usage here is pennies):
+Sleeping uses `suspend`, which freezes the machine's memory rather than shutting
+it down, so the first load after a quiet spell is quick rather than a full cold
+start. To never wait at all, set `auto_stop_machines = "off"` and
+`min_machines_running = 1`, and pay for it to stay awake.
+
+1. Install the CLI and sign in (a card is required):
 
    ```bash
    curl -L https://fly.io/install.sh | sh
@@ -86,64 +150,27 @@ forced.
    fly deploy
    ```
 
-4. `fly open` opens the app. First visit walks you through setup.
+4. `fly open` opens the app. The first visit walks you through setup.
 
-To update it later: `git pull && fly deploy`. To check on it: `fly logs`,
-`fly status`.
+To update later: `git pull && fly deploy`. To check on it: `fly logs`,
+`fly status`. Current rates are at
+[fly.io/docs/about/pricing](https://fly.io/docs/about/pricing/).
 
-If you would rather it slept when nobody's using it (a few pence a month instead
-of a few pounds, at the cost of a couple of seconds on the first load of the
-day), set this in `fly.toml` and re-deploy:
+### Option C — Railway (no terminal needed, ~$5/month)
 
-```toml
-auto_stop_machines = "suspend"
-min_machines_running = 0
-```
-
-### Option B — Railway (no terminal needed)
-
-Everything is done in the browser, which is the easiest route if you'd rather not
-touch a command line. Around $5/month.
+The easiest route if you'd rather not touch a command line — everything is done
+in the browser.
 
 1. Sign in to [railway.app](https://railway.app) with GitHub.
-2. **New Project → Deploy from GitHub repo**, and choose this repository and the
-   branch you want. Railway finds the `Dockerfile` on its own.
+2. **New Project → Deploy from GitHub repo**, and choose this repository and
+   branch. Railway finds the `Dockerfile` on its own.
 3. Open the service → **Settings → Volumes → Add volume**, mount path `/data`.
    This is the step that matters; skip it and the calendar resets on every deploy.
-4. **Settings → Networking → Generate Domain** to get an HTTPS address.
+4. **Settings → Networking → Generate Domain** for an HTTPS address.
 5. Redeploy, then open the address and set up your family.
 
 Leave the replica count at 1 (Settings → Deploy). Railway supplies `PORT` itself,
 and the `Dockerfile` already points `DATABASE_PATH` at `/data`.
-
-### Option C — Any server you already have, with Docker
-
-Works on a £4/month VPS (Hetzner, DigitalOcean, Linode) or a machine at home.
-
-```bash
-docker build -t family-organiser .
-docker run -d --name family \
-  -p 3000:3000 \
-  -v family-data:/data \
-  --restart unless-stopped \
-  family-organiser
-```
-
-The named volume `family-data` holds the calendar and survives
-`docker rm` / rebuilds. Put a reverse proxy with a TLS certificate in front —
-[Caddy](https://caddyserver.com) does this in two lines and gets certificates
-automatically:
-
-```
-calendar.example.com {
-    reverse_proxy localhost:3000
-}
-```
-
-> **On a home machine**, note it needs to stay switched on for the family to
-> reach the calendar, and you'd need to expose it to the internet somehow
-> (a tunnel such as Cloudflare Tunnel or Tailscale is safer than opening a port
-> on your router). A hosted option is genuinely less hassle.
 
 ### What's been tested, and what hasn't
 
