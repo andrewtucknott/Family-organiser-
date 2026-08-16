@@ -57,7 +57,7 @@ export function MonthView({
           return (
             <div
               key={day}
-              className={`group relative min-h-24 border-b border-r border-line p-1 sm:min-h-28 ${
+              className={`group relative min-h-16 border-b border-r border-line p-1 sm:min-h-28 ${
                 index % 7 === 6 ? "border-r-0" : ""
               } ${index >= 35 ? "border-b-0" : ""} ${
                 outside ? "bg-sunken/40" : ""
@@ -88,7 +88,27 @@ export function MonthView({
                 </button>
               </div>
 
-              <div className="space-y-0.5">
+              {/* A phone-width month cell is about 45px across — far too narrow
+                  for any title — so small screens get a dot per event and tap
+                  through to the day. */}
+              {dayEvents.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onSelectDay(day)}
+                  aria-label={`${dayEvents.length} events on ${day}`}
+                  className="flex w-full flex-wrap justify-center gap-1 py-1 sm:hidden"
+                >
+                  {dayEvents.slice(0, 6).map((occurrence) => (
+                    <span
+                      key={occurrence.key}
+                      className="member-dot h-1.5 w-1.5 rounded-full"
+                      style={memberStyle(occurrence.members[0]?.colour)}
+                    />
+                  ))}
+                </button>
+              ) : null}
+
+              <div className="hidden space-y-0.5 sm:block">
                 {visible.map((occurrence) => (
                   <MonthChip
                     key={occurrence.key}
@@ -138,12 +158,14 @@ function MonthChip({
       }`}
       title={`${occurrence.title}${occurrence.startTime ? ` · ${formatTime(occurrence.startTime)}` : ""}`}
     >
+      {/* On a phone a month cell is barely wide enough for the title, so the
+          time is dropped rather than truncating both into uselessness. */}
       {!occurrence.allDay && occurrence.startTime && !continues ? (
-        <span className="shrink-0 tabular-nums opacity-70">
+        <span className="hidden shrink-0 tabular-nums opacity-70 sm:inline">
           {formatTime(occurrence.startTime).replace(":00", "")}
         </span>
       ) : null}
-      <span className="truncate font-medium">
+      <span className="min-w-0 truncate font-medium">
         {continues ? `… ${occurrence.title}` : occurrence.title}
       </span>
       {occurrence.members.length > 1 ? (

@@ -268,7 +268,10 @@ function EventForm({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted" htmlFor={`${formId}-startDate`}>
+                <label
+                  className="mb-1 block text-xs font-medium text-muted"
+                  htmlFor={`${formId}-startDate`}
+                >
                   {multiDay ? "First day" : "Date"}
                 </label>
                 <input
@@ -283,7 +286,10 @@ function EventForm({
 
               {multiDay ? (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted" htmlFor={`${formId}-endDate`}>
+                  <label
+                    className="mb-1 block text-xs font-medium text-muted"
+                    htmlFor={`${formId}-endDate`}
+                  >
                     Last day
                   </label>
                   <input
@@ -296,38 +302,46 @@ function EventForm({
                   <FieldError message={errors.endDate} />
                 </div>
               ) : null}
-
-              {!allDay ? (
-                <>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted" htmlFor={`${formId}-startTime`}>
-                      From
-                    </label>
-                    <input
-                      id={`${formId}-startTime`}
-                      type="time"
-                      name="startTime"
-                      className={field}
-                      defaultValue={occurrence?.startTime ?? suggestedTime ?? "09:00"}
-                    />
-                    <FieldError message={errors.startTime} />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted" htmlFor={`${formId}-endTime`}>
-                      Until
-                    </label>
-                    <input
-                      id={`${formId}-endTime`}
-                      type="time"
-                      name="endTime"
-                      className={field}
-                      defaultValue={occurrence?.endTime ?? ""}
-                    />
-                    <FieldError message={errors.endTime} />
-                  </div>
-                </>
-              ) : null}
             </div>
+
+            {/* Times get their own row so they always sit side by side, rather
+                than one of them being pushed onto a line of its own. */}
+            {!allDay ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    className="mb-1 block text-xs font-medium text-muted"
+                    htmlFor={`${formId}-startTime`}
+                  >
+                    From
+                  </label>
+                  <input
+                    id={`${formId}-startTime`}
+                    type="time"
+                    name="startTime"
+                    className={field}
+                    defaultValue={occurrence?.startTime ?? suggestedTime ?? "09:00"}
+                  />
+                  <FieldError message={errors.startTime} />
+                </div>
+                <div>
+                  <label
+                    className="mb-1 block text-xs font-medium text-muted"
+                    htmlFor={`${formId}-endTime`}
+                  >
+                    Until
+                  </label>
+                  <input
+                    id={`${formId}-endTime`}
+                    type="time"
+                    name="endTime"
+                    className={field}
+                    defaultValue={occurrence?.endTime ?? ""}
+                  />
+                  <FieldError message={errors.endTime} />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-3">
