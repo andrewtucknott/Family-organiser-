@@ -276,3 +276,11 @@ The obvious next additions, in roughly the order a family would miss them:
 shared shopping and to-do lists, a meal planner with a recipe box that can push
 ingredients onto a shopping list, reminders by email or push, and a read-only
 subscription feed so the calendar can also appear in Google or Apple Calendar.
+
+## Also in this repository
+
+`diary/` holds a separate, self-contained app: the **Food & Exercise Diary**, an
+installable PWA that stores everything in IndexedDB on the phone, with no
+account and no server. It has its own README, its own dependencies and its own
+Netlify config (`netlify.toml` in this root points at it). The two apps share
+nothing but the repository.

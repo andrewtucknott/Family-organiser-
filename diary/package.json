@@ -1,0 +1,30 @@
+{
+  "name": "food-exercise-diary",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "idb": "^8.0.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0",
+    "vite-plugin-pwa": "^1.0.3"
+  }
+}
