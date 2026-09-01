@@ -64,6 +64,22 @@ netlify deploy --build --prod
 Netlify serves it over HTTPS, which the service worker requires. Any other
 static host works too — the build output in `dist/` is plain files.
 
+### If the deploy fails in `@netlify/plugin-nextjs`
+
+This repository also contains a Next.js app at its root. When you link the
+repository, Netlify inspects the **root** — not the base directory — decides the
+project is Next.js, and auto-installs the Next.js Runtime plugin. That plugin
+then fails, because the thing actually being built here is a static Vite site
+with no Next.js output for it to find.
+
+The build itself is fine; the plugin is the problem. Remove it:
+
+**Project configuration → Build & deploy → Build settings → Runtime → Remove**,
+then retry the deploy.
+
+Setting the base directory to `diary` in the Netlify UI stops the same
+misdetection happening if you ever re-link the repository.
+
 ## Adding it to an iPhone home screen
 
 1. Open the site in **Safari** (it must be Safari — Chrome on iOS cannot
